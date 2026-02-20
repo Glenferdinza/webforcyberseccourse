@@ -178,7 +178,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <li></li>
                 <li>Haidar Tafazul Fikri (24051130004)</li>
                 <li>Glenferdinza Aghis Asyadda Rayndika Efian (24051130005)</li>
+                <li>Aulia Nur Fatmi (24051130011)</li>
                 <li>Kevin Beding (24051130017)</li>
+                <li>Benedikta Anyarita Pratiwi (24051130019)</li>
                 <li></li>
                 <li></li>
               </ul>
