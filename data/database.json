@@ -1,0 +1,94 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Laptop Premium",
+      "description": "Laptop performa tinggi dengan desain minimalis dan elegan",
+      "price": 15000000,
+      "category": "Electronics",
+      "stock": 10,
+      "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400"
+    },
+    {
+      "id": 2,
+      "name": "Wireless Mouse",
+      "description": "Mouse ergonomis dengan koneksi wireless yang stabil",
+      "price": 250000,
+      "category": "Accessories",
+      "stock": 50,
+      "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400"
+    },
+    {
+      "id": 3,
+      "name": "Mechanical Keyboard",
+      "description": "Keyboard mekanikal dengan RGB lighting dan desain premium",
+      "price": 1200000,
+      "category": "Accessories",
+      "stock": 25,
+      "image_url": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=400"
+    },
+    {
+      "id": 4,
+      "name": "USB-C Hub",
+      "description": "Hub multifungsi dengan berbagai port untuk produktivitas maksimal",
+      "price": 350000,
+      "category": "Accessories",
+      "stock": 30,
+      "image_url": "https://images.unsplash.com/photo-1625948515291-69613efd103f?w=400"
+    },
+    {
+      "id": 5,
+      "name": "Webcam HD",
+      "description": "Webcam berkualitas HD untuk meeting dan streaming",
+      "price": 800000,
+      "category": "Electronics",
+      "stock": 15,
+      "image_url": "https://images.unsplash.com/photo-1587826080692-f439cd0b70da?w=400"
+    },
+    {
+      "id": 6,
+      "name": "Monitor 4K",
+      "description": "Monitor 27 inch dengan resolusi 4K dan color accuracy tinggi",
+      "price": 4500000,
+      "category": "Electronics",
+      "stock": 8,
+      "image_url": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400"
+    },
+    {
+      "id": 7,
+      "name": "Laptop Stand",
+      "description": "Stand aluminium untuk laptop dengan desain minimalis",
+      "price": 250000,
+      "category": "Accessories",
+      "stock": 40,
+      "image_url": "https://images.unsplash.com/photo-1611532736579-6b16e2b50449?w=400"
+    },
+    {
+      "id": 8,
+      "name": "Wireless Headphones",
+      "description": "Headphones premium dengan noise cancellation",
+      "price": 2500000,
+      "category": "Audio",
+      "stock": 20,
+      "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "Administrator",
+      "email": "admin123@gmail.com",
+      "password": "admin123",
+      "role": "admin",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "putra",
+      "email": "asyadda05@gmail.com",
+      "password": "Asyadda050505",
+      "role": "user",
+      "created_at": "2026-02-20T03:28:01.760Z"
+    }
+  ]
+}

