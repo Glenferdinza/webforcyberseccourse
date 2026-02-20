@@ -1,6 +1,7 @@
-# SnowCommerce - E-Commerce Cyber Security Course
+# E-Commerce Cyber Security Course
 
-E-commerce website minimalis dengan tema Snow White yang dikembangkan menggunakan Next.js. Proyek ini dirancang khusus dengan celah keamanan SQL Injection untuk keperluan praktikum mata kuliah Keamanan Siber.
+Tugas Praktikum 1 Keamanan Siber, dimana kita membuat website dinamis sederhana dan kita coba lakukan exploitasi di website ini.
+Sedikit tambahan, proyek ini dibuat untuk tujuan pembelajaran dan eksploitasi, tidak untuk digunakan di lingkungan produksi. Oleh karena itu beberapa praktik keamanan sengaja diabaikan untuk memberikan kesempatan eksploitasi dan tidak digunakan untuk di deploy di lingkungan produksi. (Jangan ya dek ya)
 
 ## Panduan Instalasi
 
